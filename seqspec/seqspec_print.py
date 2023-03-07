@@ -1,5 +1,5 @@
-from seqspec.Assay import Assay
-import yaml
+from seqspec.utils import load_spec
+from seqspec.seqspec_print_html import run_print_html
 
 
 def setup_print_args(parser):
@@ -16,6 +16,7 @@ def setup_print_args(parser):
         type=str,
         default=None,
     )
+    parser_print.add_argument("--html", help="print html", action="store_true")
     return parser_print
 
 
@@ -23,15 +24,25 @@ def validate_print_args(parser, args):
     # if everything is valid the run_print
     fn = args.yaml
     o = args.o
-    run_print(fn, o)
+    html = args.html
+    spec = load_spec(fn)
+    if html:
+        s = run_print_html(spec)
+    else:
+        s = run_print(spec)
+    if o:
+        with open(o, "w") as f:
+            print(s, file=f)
+    else:
+        print(s)
 
 
-def run_print(fn, o):
-    with open(fn, "r") as stream:
-        data: Assay = yaml.load(stream, Loader=yaml.Loader)
-    print_markdown(data)
-    # data.update_spec()
-    # data.to_YAML(o)
+def run_print(data):
+    header = headerTemplate(data.name, data.doi, data.description, data.modalities)
+    header2 = "## Final Library"
+    assay_spec = multiModalTemplate(data.assay_spec)
+    s = f"{header}\n{header2}\n{assay_spec}"
+    return s
 
 
 def headerTemplate(name, doi, description, modalities):
@@ -43,9 +54,12 @@ def headerTemplate(name, doi, description, modalities):
     return s
 
 
-def atomicRegionTemplate(name, sequence_type, sequence, min_len, max_len, onlist, ns=0):
+def atomicRegionTemplate(
+    name, region_type, sequence_type, sequence, min_len, max_len, onlist, ns=0
+):
     s = f"""<details><summary>{name}</summary>
 
+{' '*ns}- region_type: {region_type}
 {' '*ns}- sequence_type: {sequence_type}
 {' '*ns}- sequence: <pre style="overflow-x: auto; text-align: left; margin: 0; display: inline;">{sequence}</pre>
 {' '*ns}- min_len: {min_len}
@@ -61,6 +75,7 @@ def regionsTemplate(regions):
             f"{idx + 1}. "
             + atomicRegionTemplate(
                 v.name,
+                v.region_type,
                 v.sequence_type,
                 v.sequence,
                 v.min_len,
@@ -84,59 +99,6 @@ def libStructTemplate(region):
 
 def multiModalTemplate(assay_spec):
     s = "\n".join(
-        [
-            libStructTemplate(v) + "\n" + regionsTemplate(v.join.regions)
-            for v in assay_spec
-        ]
+        [libStructTemplate(v) + "\n" + regionsTemplate(v.regions) for v in assay_spec]
     )
     return s
-
-
-def print_markdown(data):
-    print(headerTemplate(data.name, data.doi, data.description, data.modalities))
-    print("## Final Library")
-    print(multiModalTemplate(data.assay_spec))
-
-
-# // console.log(
-# //   // headerTemplate(data.name, data.doi, data.description, data.modalities),
-# //   // atomicRegionTemplate(
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.name,
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.sequence_type,
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.sequence,
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.min_len,
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.max_len,
-# //   //   data.assay_spec.RNA.join.regions.illumina_p5.onlist
-# //   // ),
-# //   regionsTemplate(data.assay_spec.RNA.join.regions)
-# // );
-
-
-# function htmlTemplate(data) {
-#   return `
-#   <!DOCTYPE html>
-#   <html>
-#     <head>
-#       <meta name="viewport" content="width=device-width, initial-scale=1" />
-#       <link rel="stylesheet" type="../text/css" href="styles.css" />
-#     </head>
-#     <body>
-#       <div style="width: 75%; margin: 0 auto">
-#         <h6><a href="../index.html">Back</a></h6>
-#         <div id="assay">
-#           {headerTemplate(
-#             data.name,
-#             data.doi,
-#             data.description,
-#             data.modalities
-#           )}
-#         </div>
-#         <div id="assay_spec">
-#           <h2>Final library</h2>
-#           {multiModalTemplate(data.assay_spec)}
-#         </div>
-#       </div>
-#     </body>
-#   </html>
-#   `;
-# }

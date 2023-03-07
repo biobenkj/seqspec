@@ -13,6 +13,10 @@
       "description": "the doi of the paper that describes the assay",
       "type": "string"
     },
+    "publication_date": {
+      "description": "the publication date of the paper/announcement that describes the assay",
+      "type": "string"
+    },
     "description": {
       "description": "A short description of the assay",
       "type": "string"
@@ -36,15 +40,32 @@
       }
     }
   },
-  "required": ["name", "doi", "description", "modalities", "lib_struct"],
+  "required": [
+    "name",
+    "doi",
+    "publication_date",
+    "description",
+    "modalities",
+    "lib_struct"
+  ],
   "$defs": {
     "region": {
       "title": "Region",
       "description": "A region of DNA",
       "type": "object",
       "properties": {
+        "order": {
+          "description": "order the region appears",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
         "region_id": {
           "description": "identifier for the region",
+          "type": "string"
+        },
+        "region_type": {
+          "description": "the type of region",
           "type": "string"
         },
         "sequence_type": {
@@ -81,34 +102,18 @@
             }
           }
         },
-        "join": {
-          "description": "Join operator on regions",
-          "type": ["object", "null"],
-          "properties": {
-            "how": {
-              "description": "How the regions will be joined",
-              "type": "string"
-            },
-            "order": {
-              "description": "The order of the regions being joined",
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "regions": {
-              "description": "The regions being joined",
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/region"
-              }
-            }
-          },
-          "required": ["how", "order", "regions"]
+        "regions": {
+          "description": "The regions being joined",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/region"
+          }
         }
       },
       "required": [
+        "order",
         "region_id",
+        "region_type",
         "sequence_type",
         "sequence",
         "min_len",
